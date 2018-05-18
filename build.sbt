@@ -1,3 +1,4 @@
+import microsites._
 
 val catsVersion       = "1.1.0"
 val catsEffectVersion = "1.0.0-RC"
@@ -37,9 +38,7 @@ lazy val docs = project.in(file("modules/docs"))
     micrositeDocumentationUrl := "/retry4s/docs",
     micrositeHomepage := "https://github.com/marcodippy/retry4s",
     micrositeGithubOwner := "marcodippy",
-    micrositeGithubRepo := "retry4s"
+    micrositeGithubRepo := "retry4s",
+    micrositePushSiteWith := GitHub4s,
+    micrositeGithubToken := getEnvVar("GITHUB_TOKEN")
   )
-
-
-micrositePushSiteWith := GitHub4s
-micrositeGithubToken := getEnvVar("GITHUB_TOKEN")
