@@ -1,9 +1,0 @@
-options:
-  - title: Creating a policy
-    url: docs/index.html
-  - title: Predefined policies
-    url: docs/policies.html
-  - title: Retrying
-    url: docs/retrying.html
-  - title: DSL
-    url: docs/dsl.html
