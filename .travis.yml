@@ -8,7 +8,7 @@ jdk:
 scala:
   - 2.12.6
 
-script: sbt compile test
+script: sbt compile test publishMicrosite
 
 before_install:
  - export PATH=${PATH}:./vendor/bundle
