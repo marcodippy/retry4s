@@ -39,3 +39,7 @@ lazy val docs = project.in(file("modules/docs"))
     micrositeGithubOwner := "marcodippy",
     micrositeGithubRepo := "retry4s"
   )
+
+
+micrositePushSiteWith := GitHub4s
+micrositeGithubToken := getEnvVar("GITHUB_TOKEN")
