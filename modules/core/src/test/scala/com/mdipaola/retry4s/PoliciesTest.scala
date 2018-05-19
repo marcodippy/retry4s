@@ -1,16 +1,17 @@
 package com.mdipaola.retry4s
 
 import cats.effect.IO
+import com.mdipaola.retry4s.utils.BoundedArithmetic._
 import org.scalacheck._
 import org.scalatest.Assertion
 
 import scala.annotation.tailrec
+import scala.language.reflectiveCalls
 
 class PoliciesTest extends BaseTest {
 
-  //TODO increase these once you implemented bounded arithmetic
-  val numOfRetries: Gen[Int] = Gen.choose(0, 20)
-  val baseDelay: Gen[Long] = Gen.choose[Long](0, 300)
+  val numOfRetries: Gen[Int] = Gen.choose(0, 100)
+  val baseDelay: Gen[Long] = Gen.choose[Long](0, 500)
 
   test("limitRetries") {
     forAll(numOfRetries, numOfRetries) { (retries, maxRetries) =>
@@ -42,7 +43,7 @@ class PoliciesTest extends BaseTest {
         results.headOption.foreach { case (_, delay) => delay shouldBe Some(baseDelay) }
 
         results.tail.zip(results)
-          .foreach { case ((_, Some(nextDelay)), (_, Some(delay))) => nextDelay shouldBe (delay * 2) }
+          .foreach { case ((_, Some(nextDelay)), (_, Some(delay))) => nextDelay shouldBe (delay boundedMult 2L) }
       }
     }
   }
@@ -52,8 +53,9 @@ class PoliciesTest extends BaseTest {
       whenever(baseDelay > 0 && (retries > 0)) {
         val simulate = fullJitterBackoff[IO](baseDelay).simulatePolicy(retries)
         val results = simulate.unsafeRunSync()
+
         results.foreach {
-          case (itNum, Some(delay)) => delay shouldBe <=(baseDelay * scala.math.pow(2, itNum.doubleValue()).toLong)
+          case (itNum, Some(delay)) => delay shouldBe <=(baseDelay boundedMult (2 boundedPow itNum.toLong))
           case _ => fail
         }
 
@@ -79,7 +81,7 @@ class PoliciesTest extends BaseTest {
             delay2 shouldBe baseDelay
           }
           case Some(delay3) :: Some(delay2) :: Some(delay1) :: _ => {
-            delay3 shouldBe (delay1 + delay2)
+            delay3 shouldBe (delay1 boundedPlus delay2)
             test(l.tail)
           }
           case _ => fail

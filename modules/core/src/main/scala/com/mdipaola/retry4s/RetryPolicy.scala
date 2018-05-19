@@ -1,13 +1,11 @@
 package com.mdipaola.retry4s
 
-import java.util.concurrent.TimeUnit
-
 import cats._
 import cats.data._
 import cats.effect._
 import cats.implicits._
-
-import scala.concurrent.duration.FiniteDuration
+import utils.BoundedArithmetic._
+import scala.language.reflectiveCalls
 
 case class RetryPolicy[F[_]] protected[RetryPolicy](protected[retry4s] val policy: Kleisli[OptionT[F, ?], RetryStatus, DelayInMillis]) {
 
@@ -21,12 +19,12 @@ case class RetryPolicy[F[_]] protected[RetryPolicy](protected[retry4s] val polic
     applyPolicy(rs).subflatMap(rs => rs.previousDelay).value
 
   protected[retry4s] def applyPolicy(rs: RetryStatus)(implicit F: Functor[F]): OptionT[F, RetryStatus] =
-    policy(rs).map(delay => RetryStatus(rs.iterNum + 1, rs.cumulativeDelay + delay, previousDelay = Some(delay))) //TODO boundedPlus
+    policy(rs).map(delay => RetryStatus(rs.iterNum + 1, rs.cumulativeDelay boundedPlus delay, previousDelay = Some(delay)))
 
   protected[retry4s] def applyAndDelay(rs: RetryStatus)(implicit F: Monad[F], timer: Timer[F]): OptionT[F, RetryStatus] =
     applyPolicy(rs).flatMap(retryStatus => {
       retryStatus.previousDelay match {
-        case Some(delay) => OptionT.liftF(timer.sleep(FiniteDuration(delay, TimeUnit.MILLISECONDS)).map(_ => retryStatus))
+        case Some(delay) => OptionT.liftF(timer.sleep(delay.toFiniteDurationMs).map(_ => retryStatus))
         case None => OptionT.none[F, RetryStatus]
       }
     })
@@ -41,7 +39,7 @@ case class RetryPolicy[F[_]] protected[RetryPolicy](protected[retry4s] val polic
 
   def limitRetriesByCumulativeDelay(cumulativeLimit: DelayInMillis)(implicit F: Monad[F]): RetryPolicy[F] = {
     def limit(retryStatus: RetryStatus, currDelay: DelayInMillis): OptionT[F, DelayInMillis] =
-      if (retryStatus.cumulativeDelay + currDelay > cumulativeLimit) OptionT.none[F, DelayInMillis]
+      if ((retryStatus.cumulativeDelay boundedPlus currDelay) > cumulativeLimit) OptionT.none[F, DelayInMillis]
       else OptionT.pure[F](currDelay)
 
     RetryPolicy(tapWithF(policy)(limit))
@@ -109,7 +107,7 @@ case class RetryPolicy[F[_]] protected[RetryPolicy](protected[retry4s] val polic
         _ <- StateT.set[F, RetryStatus](
           stat.copy(
             iterNum = i + 1,
-            cumulativeDelay = stat.cumulativeDelay + delay.getOrElse(0L), // TODO bounded plus
+            cumulativeDelay = stat.cumulativeDelay boundedPlus delay.getOrElse(0L),
             previousDelay = delay
           )
         )

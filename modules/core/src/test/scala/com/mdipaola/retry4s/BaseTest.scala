@@ -20,8 +20,8 @@ trait BaseTest extends CatsSuite {
       F.pure(checkMillis(duration.length))
   }
 
-  val delayGen: Gen[Long] = Gen.choose[Long](0, 300)
-  val retriesGen: Gen[Int] = Gen.choose(0, 20)
+  val delayGen: Gen[Long] = Gen.choose[Long](0, 500)
+  val retriesGen: Gen[Int] = Gen.choose(0, 100)
 
   case class NumOfRetries(get: Int)
 
@@ -38,7 +38,7 @@ trait BaseTest extends CatsSuite {
   implicit val arbRetryStatus: Arbitrary[RetryStatus] = Arbitrary {
     for {
       iterNum <- retriesGen
-      cumulativeDelay <- Gen.choose(0L, 1000)
+      cumulativeDelay <- Gen.choose(0L, 10000)
       previousDelay <- Gen.option(delayGen)
     } yield
       RetryStatus(iterNum, cumulativeDelay, previousDelay)

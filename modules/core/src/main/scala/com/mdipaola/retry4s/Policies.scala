@@ -3,8 +3,10 @@ package com.mdipaola.retry4s
 import cats.Id
 import cats.effect.Sync
 import cats.implicits._
+import com.mdipaola.retry4s.utils.BoundedArithmetic._
 
 import scala.annotation.tailrec
+import scala.language.reflectiveCalls
 
 trait Policies {
 
@@ -15,21 +17,24 @@ trait Policies {
     retryPolicy(_ => Some(delay))
 
   def exponentialBackoff(baseDelay: DelayInMillis): RetryPolicy[Id] =
-    retryPolicy(rs => Some(baseDelay * scala.math.pow(2, rs.iterNum.doubleValue()).toLong)) //TODO fix this shit
+    retryPolicy(rs => Some(baseDelay boundedMult (2L boundedPow rs.iterNum.toLong)))
 
-  def fullJitterBackoff[F[_]](baseDelay: DelayInMillis, rnd: Int => DelayInMillis = scala.util.Random.nextInt(_).toLong)
-                             (implicit F: Sync[F]): RetryPolicy[F] =
+  def fullJitterBackoff[F[_]](baseDelay: DelayInMillis)
+                             (implicit F: Sync[F]): RetryPolicy[F] = {
     retryPolicyF(rs => {
-      val tmp = (baseDelay * scala.math.pow(2, rs.iterNum.doubleValue())).toInt //TODO fix this shit
-      F.delay(rnd(tmp + 1)).map(_.some)
+      val tmp = baseDelay boundedMult (2L boundedPow rs.iterNum.toLong)
+      val rnd = F.delay((scala.util.Random.nextDouble() * (tmp + 1L)).toLong)
+      rnd.map(_.some)
     })
+  }
+
 
   def fibonacciBackoff(baseDelay: DelayInMillis): RetryPolicy[Id] = {
     @tailrec
     def fib(i: Int, num: DelayInMillis, acc: DelayInMillis): DelayInMillis =
       if (i == 0) num
       else
-        fib(i - 1, acc, acc + num) //TODO boundedPlus
+        fib(i - 1, acc, acc boundedPlus num)
 
     retryPolicy(rs => fib(rs.iterNum + 1, 0L, baseDelay).some)
   }
