@@ -119,7 +119,7 @@ object Recovering extends App {
       case _ => false
     }
     .map(result => println(s"$result"))
-    .unsafeRunSync() // Right(result_4)
+    .unsafeRunSync() // result_4
 }
 
 object RecoveringF extends App {
@@ -133,8 +133,8 @@ object RecoveringF extends App {
       case (rs, _: IllegalArgumentException) => IO(println(s"this is retriable! - $rs")) *> IO.pure(true)
       case _ => IO.pure(false)
     }
-    .map(result => println(s"$result"))
-    .unsafeRunSync() // Right(result_4)
+    .map(println)
+    .unsafeRunSync() // result_4
 }
 
 object RecoveringWithPartialFunction extends App {
@@ -145,13 +145,13 @@ object RecoveringWithPartialFunction extends App {
 
   limitRetries(5).liftTo[IO]
     .recovering_[Throwable](action) { case (_, _: IllegalArgumentException) => true }
-    .map(result => println(s"$result"))
-    .unsafeRunSync() // Right(result_4)
+    .map(println)
+    .unsafeRunSync() // result_4
 
   limitRetries(5).liftTo[IO]
     .recoveringF_[Throwable](action) { case (_, _: IllegalArgumentException) => IO(true) }
-    .map(result => println(s"$result"))
-    .unsafeRunSync() // Right(result_4)
+    .map(println)
+    .unsafeRunSync() // result_4
 }
 
 
@@ -185,7 +185,14 @@ object RecoveringAll extends App {
 
   limitRetries(5).liftTo[IO]
     .recoveringAll(action)
-    .map(result => println(s"$result"))
+    .map(println)
     .unsafeRunSync() // result_3
 }
 
+object SimulatePolicy extends App {
+  val rp = exponentialBackoff(100L) |+| limitRetries(5)
+  rp.simulatePolicy(7).foreach(println)
+
+  val rp2 = fullJitterBackoff[IO](100) |+| limitRetries(3)
+  rp2.simulatePolicy(5).map(_.foreach(println)).unsafeRunSync()
+}
