@@ -1,5 +1,3 @@
-import microsites._
-
 val catsVersion       = "1.1.0"
 val catsEffectVersion = "1.0.0-RC"
 val scalaTestVersion  = "3.0.5"
@@ -23,12 +21,15 @@ lazy val core = (project in file("modules/core"))
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6")
   )
 
+
 lazy val examples = (project in file("modules/examples"))
   .dependsOn(core)
 
 lazy val docs = project.in(file("modules/docs"))
   .dependsOn(core)
   .enablePlugins(MicrositesPlugin)
+  .enablePlugins(TutPlugin)
+  .disablePlugins(TpolecatPlugin)
   .settings(
     publishArtifact := false,
     micrositeName := "retry4s",
