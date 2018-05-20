@@ -46,13 +46,15 @@ limitRetries(3).liftTo[IO]
 
 If your retry check requires an effect `F` you can use the `retryingF` variant:
 ```scala
-def retryingF[A](f: RetryStatus => F[A])                         //action to retry
+def retryingF[A](f: RetryStatus => F[A])                        //action to retry
                (check: (RetryStatus, A) => F[Boolean])          //wheter to retry or not
                (implicit F: Monad[F], timer: Timer[F]): F[A]
 ```
 ```scala
 limitRetries(3).liftTo[IO]
-  .retryingF(action)((rs, result) => IO(println(s"result $result at retry ${rs.iterNum}")).map(_ => result.isEmpty))
+  .retryingF(action)((rs, result) => 
+    IO(println(s"result $result at retry ${rs.iterNum}")).map(_ => result.isEmpty)
+  )
   
 /* when run will produce: 
     running action...
@@ -95,7 +97,7 @@ val action: RetryStatus => IO[String] =
   )
 
 limitRetries(5).liftTo[IO]
-  .recovering[Throwable](action) {                    // here you need to specify the type of the error to handle
+  .recovering[Throwable](action) {  // here you need to specify the type of the error to handle
     case (_, _: IllegalArgumentException) => true
     case _ => false
   }
