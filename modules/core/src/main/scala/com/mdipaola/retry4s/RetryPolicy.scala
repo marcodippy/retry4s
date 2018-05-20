@@ -7,7 +7,7 @@ import cats.implicits._
 import utils.BoundedArithmetic._
 import scala.language.reflectiveCalls
 
-case class RetryPolicy[F[_]] protected[RetryPolicy](protected[retry4s] val policy: Kleisli[OptionT[F, ?], RetryStatus, DelayInMillis]) {
+case class RetryPolicy[F[_]] protected[RetryPolicy](policy: Kleisli[OptionT[F, ?], RetryStatus, DelayInMillis]) {
 
   def apply(rs: RetryStatus)(implicit F: Functor[F]): F[Option[RetryStatus]] =
     applyPolicy(rs).value
@@ -123,14 +123,14 @@ object RetryPolicy {
   protected[retry4s] def apply[F[_]](f: RetryStatus => OptionT[F, DelayInMillis]): RetryPolicy[F] =
     RetryPolicy[F](Kleisli(f))
 
-  implicit def liftPureTo[F[_]](rp: RetryPolicy[Id])(implicit F: Monad[F]): RetryPolicy[F] =
+  implicit def liftPureTo[F[_]](rp: RetryPolicy[Id])(implicit F: Applicative[F]): RetryPolicy[F] =
     RetryPolicy[F]((rs: RetryStatus) => OptionT(F.pure(rp.policy(rs).value)))
 
   implicit def retryPolicyPureOps(rp: RetryPolicy[Id]): RetryPolicyPureOps =
     new RetryPolicyPureOps(rp)
 
   final class RetryPolicyPureOps(val rp: RetryPolicy[Id]) extends AnyVal {
-    def liftTo[F2[_]](implicit F: Monad[F2]): RetryPolicy[F2] =
+    def liftTo[F2[_]](implicit F: Applicative[F2]): RetryPolicy[F2] =
       RetryPolicy.liftPureTo[F2](rp)
   }
 

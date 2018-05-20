@@ -14,13 +14,10 @@ object PolicyDefinition {
   val fibonacci: RetryPolicy[Id] = fibonacciBackoff(100)
   val fullJitter: RetryPolicy[IO] = fullJitterBackoff[IO](100)
 
-
   // custom policies
   val customPolicy: RetryPolicy[Id] = retryPolicy(rs => if ((rs.iterNum % 2) == 0) 0L.some else 50L.some)
 
-  val customIo: RetryPolicy[IO] = retryPolicyF[IO](rs => IO {
-    scala.util.Random.nextInt(200).toLong.some
-  })
+  val customIo: RetryPolicy[IO] = retryPolicyF[IO](rs => IO { scala.util.Random.nextLong().some })
 
 
   // policy transformation
@@ -40,4 +37,5 @@ object PolicyDefinition {
 
   val combinePureAndImpure = List[RetryPolicy[IO]](fullJitter, atMost5retries).combineAll
   val combinePureAndImpure2 = List(fullJitter, atMost5retries.liftTo[IO]).combineAll
+
 }
