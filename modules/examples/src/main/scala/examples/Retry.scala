@@ -196,3 +196,33 @@ object SimulatePolicy extends App {
   val rp2 = fullJitterBackoff[IO](100) |+| limitRetries(3)
   rp2.simulatePolicy(5).map(_.foreach(println)).unsafeRunSync()
 }
+
+
+object DslExamples extends App {
+  import com.mdipaola.retry4s.dsl._
+
+  IO(Random.nextInt(11)).map(num => s"result_$num")
+    .retryWithPolicy(limitRetries(10))
+    .whenResult((rs, result) => !(result endsWith rs.iterNum.toString))
+    .map(str => println(s"final result = $str")).unsafeRunSync()
+
+  retry(IO(Random.nextInt(11)).map(num => s"result_$num"))
+    .withPolicy(limitRetries(10))
+    .whenResult((rs, result) => !(result endsWith rs.iterNum.toString))
+    .map(str => println(s"final result = $str")).unsafeRunSync()
+
+  retry((rs: RetryStatus) => IO(s"result_${rs.iterNum}".some))
+    .withPolicy(limitRetries(10))
+    .whenResult_{ case(_, Some(result)) if !(result endsWith "5") => true}
+    .map(str => println(s"final result = $str")).unsafeRunSync()
+
+  IO(Random.nextInt(11)).flatMap(num => if (num < 8) IO.raiseError(new IllegalArgumentException) else IO(s"result_$num"))
+    .retryWithPolicy(limitRetries(10))
+    .whenError_[Throwable]{ case (_, _ : IllegalArgumentException) =>  true }
+    .map(str => println(s"final result = $str")).unsafeRunSync()
+
+  IO(Random.nextInt(11)).flatMap(num => if (num < 8) IO.raiseError(new IllegalArgumentException) else IO(s"result_$num"))
+    .retryWithPolicy(limitRetries(10))
+    .onAllErrors
+    .map(str => println(s"final result = $str")).unsafeRunSync()
+}

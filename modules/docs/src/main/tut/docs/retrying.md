@@ -95,7 +95,7 @@ val action: RetryStatus => IO[String] =
   )
 
 limitRetries(5).liftTo[IO]
-  .recoveringAll[Throwable](action) {                    // here you need to specify the type of the error to handle
+  .recovering[Throwable](action) {                    // here you need to specify the type of the error to handle
     case (_, _: IllegalArgumentException) => true
     case _ => false
   }
@@ -118,7 +118,7 @@ and `recovering_` and `recoveringF_` using partial functions for the check.
 ## `recoveringAll` 
 
 ```scala
-def recovering[A](f: RetryStatus => F[A])(implicit F: MonadError[F, E], timer: Timer[F]): F[A]
+def recoveringAll[A](f: RetryStatus => F[A])(implicit F: MonadError[F, E], timer: Timer[F]): F[A]
 ```
 
 This one only takes the action to retry and will retry on any type of error `E`
