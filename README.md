@@ -5,4 +5,4 @@ Simple library for retrying action that may fail built on [Cats](https://github.
 
 Inspired by [https://github.com/Soostone/retry](https://github.com/Soostone/retry)
 
-
+Documentation [here](http://mdipaola.com/retry4s/docs/) 
